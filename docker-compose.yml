@@ -1,0 +1,13 @@
+services:
+  db:
+    image: postgres:16
+    environment:
+      POSTGRES_USER: heart
+      POSTGRES_PASSWORD: heart
+      POSTGRES_DB: heart
+    ports:
+      - "5433:5432"   # 5432 is commonly taken by other local Postgres containers
+    volumes:
+      - heart_pgdata:/var/lib/postgresql/data
+volumes:
+  heart_pgdata:

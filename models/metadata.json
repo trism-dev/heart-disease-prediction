@@ -1,0 +1,138 @@
+{
+  "model_name": "logistic_regression",
+  "run_id": 8,
+  "threshold": 0.3114121141704047,
+  "selection_reason": "no tree model beat LR by more than one CV std; ties go to LR",
+  "cv_metrics": {
+    "search": {
+      "recall": {
+        "std": 0.05423812140051993,
+        "mean": 0.8280632411067194
+      },
+      "precision": {
+        "std": 0.07541303764199071,
+        "mean": 0.860787473396169
+      }
+    },
+    "oof_recall": 0.9009009009009009,
+    "at_threshold": {
+      "f2": {
+        "std": 0.020964464805572836,
+        "mean": 0.8562200311681512
+      },
+      "recall": {
+        "std": 0.02084019972563487,
+        "mean": 0.900790513833992
+      },
+      "precision": {
+        "std": 0.04703584241296858,
+        "mean": 0.716602809706258
+      }
+    },
+    "oof_precision": 0.7142857142857143
+  },
+  "test_metrics": {
+    "threshold": 0.3114121141704047,
+    "recall": 0.9642857142857143,
+    "precision": 0.7297297297297297,
+    "f2": 0.9060402684563759,
+    "specificity": 0.696969696969697,
+    "accuracy": 0.819672131147541,
+    "roc_auc": 0.958874458874459,
+    "pr_auc": 0.9417243620934834,
+    "tn": 23,
+    "fp": 10,
+    "fn": 1,
+    "tp": 27,
+    "recall_ci": [
+      0.88,
+      1.0
+    ],
+    "precision_ci": [
+      0.5882352941176471,
+      0.868421052631579
+    ]
+  },
+  "input_ranges": {
+    "age": [
+      29.0,
+      77.0
+    ],
+    "sex": [
+      0.0,
+      1.0
+    ],
+    "cp": [
+      1.0,
+      4.0
+    ],
+    "trestbps": [
+      94.0,
+      200.0
+    ],
+    "chol": [
+      126.0,
+      564.0
+    ],
+    "fbs": [
+      0.0,
+      1.0
+    ],
+    "restecg": [
+      0.0,
+      2.0
+    ],
+    "thalach": [
+      71.0,
+      202.0
+    ],
+    "exang": [
+      0.0,
+      1.0
+    ],
+    "oldpeak": [
+      0.0,
+      6.2
+    ],
+    "slope": [
+      1.0,
+      3.0
+    ],
+    "ca": [
+      0.0,
+      3.0
+    ],
+    "thal": [
+      3.0,
+      7.0
+    ]
+  },
+  "reference_values": {
+    "age": 56.0,
+    "sex": 1.0,
+    "cp": 4.0,
+    "trestbps": 130.0,
+    "chol": 241.0,
+    "fbs": 0.0,
+    "restecg": 0.0,
+    "thalach": 153.0,
+    "exang": 0.0,
+    "oldpeak": 0.8,
+    "slope": 1.0,
+    "ca": 0.0,
+    "thal": 3.0
+  },
+  "dataset": {
+    "rows": 303,
+    "positive_rate": 0.45874587458745875,
+    "male_rate": 0.6798679867986799,
+    "data_hash": "295cbe13d6e7982a2bc8437fbad4e5017fe8b27801435d5aec9e5b0740131ec9"
+  },
+  "lib_versions": {
+    "python": "3.12.5",
+    "sklearn": "1.9.1",
+    "xgboost": "3.4.1",
+    "numpy": "2.5.3"
+  },
+  "seed": 42
+}

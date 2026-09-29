@@ -1,0 +1,10 @@
+{
+  "selected": "logistic_regression",
+  "reason": "no tree model beat LR by more than one CV std; ties go to LR",
+  "run_ids": {
+    "logistic_regression": 8,
+    "random_forest": 9,
+    "xgboost": 10
+  },
+  "data_hash": "295cbe13d6e7982a2bc8437fbad4e5017fe8b27801435d5aec9e5b0740131ec9"
+}

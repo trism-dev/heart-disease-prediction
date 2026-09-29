@@ -1,0 +1,17 @@
+pandas>=2.1
+numpy
+scikit-learn>=1.8
+xgboost>=2.0
+sqlalchemy>=2.0
+psycopg[binary]>=3.1
+streamlit>=1.35
+joblib
+matplotlib
+python-dotenv
+requests
+nbformat
+pytest
+ruff
+seaborn
+nbconvert
+ipykernel

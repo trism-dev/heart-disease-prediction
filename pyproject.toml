@@ -1,0 +1,11 @@
+[tool.pytest.ini_options]
+markers = ["db: needs the docker Postgres"]
+pythonpath = ["."]
+
+[tool.ruff]
+line-length = 100
+extend-exclude = ["*.ipynb", ".venv"]
+
+[tool.ruff.lint]
+select = ["E", "F", "I"]
+ignore = ["E501"]
