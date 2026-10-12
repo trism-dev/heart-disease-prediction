@@ -11,6 +11,11 @@ from src.config import SEED
 from src.features import build_preprocessor
 
 MODEL_NAMES = ["logistic_regression", "random_forest", "xgboost"]
+LABELS = {
+    "logistic_regression": "Logistic regression",
+    "random_forest": "Random forest",
+    "xgboost": "XGBoost",
+}
 
 
 def make_pipeline(name: str, y_train=None, **params) -> Pipeline:

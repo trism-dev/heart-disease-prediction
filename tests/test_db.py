@@ -1,5 +1,6 @@
 import pytest
 from sqlalchemy import func, select, text
+from sqlalchemy.exc import OperationalError
 
 from src.data import read_raw
 from src.db import ModelRun, PatientRaw, get_engine, get_session_factory, init_db
@@ -10,7 +11,10 @@ pytestmark = pytest.mark.db
 
 @pytest.fixture(scope="module")
 def engine():
-    e = init_db(get_engine())
+    try:
+        e = init_db(get_engine())
+    except OperationalError:
+        pytest.skip("Postgres not reachable (docker compose up -d)")
     ingest(e)
     return e
 

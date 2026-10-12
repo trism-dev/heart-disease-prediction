@@ -35,14 +35,9 @@ from src.config import (
 )
 from src.data import data_hash, load_clean, split
 from src.db import ModelRun, get_engine, get_session_factory
-from src.models import MODEL_NAMES
+from src.models import LABELS, MODEL_NAMES
+from src.report_extras import extras_markdown
 from src.train import lib_versions
-
-LABELS = {
-    "logistic_regression": "Logistic regression",
-    "random_forest": "Random forest",
-    "xgboost": "XGBoost",
-}
 
 
 def metrics_at(y, proba, thr: float) -> dict:
@@ -168,7 +163,7 @@ def main() -> None:
     shipped = sel["selected"]
     oof_blob = joblib.load(MODELS_DIR / "oof.joblib")
     df = load_clean(engine)
-    _, X_test, _, y_test = split(df)
+    X_train, X_test, y_train, y_test = split(df)
     y = y_test.to_numpy()
 
     Session = get_session_factory(engine)
@@ -210,6 +205,8 @@ def main() -> None:
             .values(is_active=False)
         )
 
+    extra = extras_markdown(X_train, y_train, X_test, y, probs, thresholds, oof_blob, shipped)
+
     # Packaging
     shutil.copyfile(MODELS_DIR / f"{shipped}.joblib", PIPELINE_PATH)
     ranges = {c: [float(df[c].min()), float(df[c].max())] for c in FEATURES}
@@ -228,6 +225,10 @@ def main() -> None:
         "test_metrics": res[shipped],
         "input_ranges": ranges,
         "reference_values": ref,
+        "transformed_mean": joblib.load(MODELS_DIR / f"{shipped}.joblib")[:-1]
+        .transform(X_train)
+        .mean(axis=0)
+        .tolist(),
         "dataset": {
             "rows": len(df),
             "positive_rate": float(df["target"].mean()),
@@ -239,7 +240,7 @@ def main() -> None:
     }
     METADATA_PATH.write_text(json.dumps(meta, indent=2))
 
-    write_report(res, runs, shipped, sel, len(y), int(y.sum()))
+    write_report(res, runs, shipped, sel, len(y), int(y.sum()), extra)
     m = res[shipped]
     print(
         f"shipped: {shipped} | test recall {m['recall']:.3f} precision {m['precision']:.3f} "
@@ -251,7 +252,7 @@ def main() -> None:
         )
 
 
-def write_report(res, runs, shipped, sel, n_test, n_pos) -> None:
+def write_report(res, runs, shipped, sel, n_test, n_pos, extra: str = "") -> None:
     rows = []
     for name in MODEL_NAMES:
         m = res[name]
@@ -317,7 +318,7 @@ percentage is a risk score, not a calibrated prevalence estimate (see `figures/c
 Sanity check: test accuracy {m["accuracy"]:.3f}, recall {m["recall"]:.3f}
 ({"ALARM: investigate leakage" if m["accuracy"] > 0.92 or m["recall"] == 1.0 else "inside the plausible range, no leakage alarm"}).
 
-{perfect}## Figures
+{perfect}{extra}## Figures
 
 `figures/confusion_matrices.png`, `figures/roc_pr.png`, `figures/recall_vs_threshold.png`,
 `figures/calibration.png`.

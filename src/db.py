@@ -96,7 +96,7 @@ class Prediction(Base):
 
 
 def get_engine(url: str = DATABASE_URL):
-    return create_engine(url, future=True)
+    return create_engine(url, future=True, connect_args={"connect_timeout": 3})
 
 
 def init_db(engine=None):

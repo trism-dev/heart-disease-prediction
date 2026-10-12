@@ -56,8 +56,10 @@ def to_frame(inputs: dict) -> pd.DataFrame:
 def _contributions(bundle: dict, X: pd.DataFrame) -> dict[str, float]:
     pipe, meta = bundle["pipeline"], bundle["meta"]
     clf = pipe[-1]
-    if hasattr(clf, "coef_"):  # LR: coefficient x transformed value, summed per raw feature
-        Z = pipe[:-1].transform(X)[0]
+    if hasattr(clf, "coef_"):
+        # LR: coefficient x (value - training mean), summed per raw feature. Centering matters:
+        # binary/one-hot columns are not standardised, so uncentred they would always dominate.
+        Z = pipe[:-1].transform(X)[0] - np.asarray(meta["transformed_mean"])
         names = pipe[:-1].get_feature_names_out()
         out: dict[str, float] = {}
         for n, z, w in zip(names, Z, clf.coef_[0]):
@@ -88,6 +90,7 @@ def predict(bundle: dict, inputs: dict) -> dict:
         "elevated": p >= thr,
         "label": HIGH if p >= thr else LOW,
         "top": top,
+        "contributions": contrib,
     }
 
 

@@ -75,3 +75,17 @@ def test_unknown_inputs_work(bundle):
     p = {**PROFILES[0], "ca": None, "thal": None}
     assert np.isnan(to_frame(p)[["ca", "thal"]]).all().all()
     assert 0 <= predict(bundle, p)["probability"] <= 1
+
+
+def test_top_features_are_patient_specific(bundle):
+    """Uncentred contributions made 'sex' the top feature for every male patient."""
+    tops = [predict(bundle, p)["top"][0][0] for p in PROFILES[:2]]
+    males = [p for p in PROFILES if p["sex"] == 1]
+    all_tops = {predict(bundle, p)["top"][0][0] for p in males}
+    assert len(all_tops) > 1 or "sex" not in all_tops, tops
+
+
+def test_reference_patient_has_near_zero_contributions(bundle):
+    ref = bundle["meta"]["reference_values"]
+    contrib = dict(predict(bundle, ref)["top"])
+    assert all(abs(v) < 1.0 for v in contrib.values())

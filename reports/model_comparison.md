@@ -41,6 +41,80 @@ Sanity check: test accuracy 0.820, recall 0.964
 
 Note: XGBoost reaches recall 1.00 on test at threshold 0.029 with specificity 0.485. That comes from flagging many healthy patients, not from leakage (accuracy stays low).
 
+## Probability quality (Brier score, test)
+
+| Model | Brier |
+| --- | --- |
+| Logistic regression | 0.089 |
+| Random forest | 0.112 |
+| XGBoost | 0.104 |
+
+Lower is better; 0.25 is a coin flip. Class weighting pushes probabilities up, so these are expected to be mediocre. The app shows a risk score, not a calibrated probability.
+
+## Logistic regression odds ratios
+
+Per 1 SD for numeric features (age, trestbps, chol, thalach, oldpeak, ca), per category for one-hot features, per unit for binary features. Above 1 raises the odds of disease.
+
+| Feature | Odds ratio |
+| --- | --- |
+| sex | 3.41 |
+| ca | 3.08 |
+| cp_4.0 | 2.31 |
+| thal_3.0 | 0.45 |
+| cp_1.0 | 0.49 |
+| slope_1.0 | 0.52 |
+| thal_7.0 | 1.89 |
+| cp_3.0 | 0.54 |
+| exang | 1.67 |
+| slope_2.0 | 1.49 |
+| restecg_0.0 | 0.68 |
+| thalach | 0.69 |
+| thal_6.0 | 0.71 |
+| trestbps | 1.39 |
+| slope_3.0 | 0.79 |
+| fbs | 0.80 |
+| oldpeak | 1.21 |
+| chol | 1.20 |
+| restecg_1.0 | 0.90 |
+| age | 0.91 |
+| cp_2.0 | 1.01 |
+| restecg_2.0 | 1.00 |
+
+## Random forest: permutation importance (top 5)
+
+Drop in train ROC-AUC when the feature is shuffled.
+
+| Feature | Importance |
+| --- | --- |
+| thal | 0.128 ± 0.012 |
+| ca | 0.049 ± 0.010 |
+| cp | 0.029 ± 0.008 |
+| age | 0.014 ± 0.003 |
+| oldpeak | 0.012 ± 0.003 |
+
+## XGBoost: permutation importance (top 5)
+
+Drop in train ROC-AUC when the feature is shuffled.
+
+| Feature | Importance |
+| --- | --- |
+| thal | 0.028 ± 0.004 |
+| ca | 0.021 ± 0.004 |
+| age | 0.010 ± 0.003 |
+| cp | 0.006 ± 0.003 |
+| sex | 0.005 ± 0.002 |
+
+## Subgroups: recall by sex (shipped model)
+
+One global threshold is used for both groups. Women are about a third of the data, so the test rows are tiny; the train OOF rows are the steadier view.
+
+| Group | n | Disease | Recall | Precision |
+| --- | --- | --- | --- | --- |
+| Male, train OOF | 165 | 93 | 0.925 | 0.741 |
+| Male, test | 41 | 21 | 0.952 | 0.690 |
+| Female, train OOF | 77 | 18 | 0.778 | 0.583 |
+| Female, test | 20 | 7 | 1.000 | 0.875 |
+
 ## Figures
 
 `figures/confusion_matrices.png`, `figures/roc_pr.png`, `figures/recall_vs_threshold.png`,
