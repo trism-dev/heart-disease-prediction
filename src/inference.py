@@ -7,7 +7,14 @@ import numpy as np
 import pandas as pd
 from sqlalchemy import select
 
-from src.config import FEATURES, LOG_PREDICTIONS, METADATA_PATH, PIPELINE_PATH, ROOT
+from src.config import (
+    DATABASE_CONFIGURED,
+    FEATURES,
+    LOG_PREDICTIONS,
+    METADATA_PATH,
+    PIPELINE_PATH,
+    ROOT,
+)
 from src.db import ModelRun, Prediction, get_engine, get_session_factory
 from src.robustness import apply_platt
 
@@ -22,6 +29,7 @@ def load_bundle() -> dict:
         "meta": meta,
         "run_id": meta["run_id"],
         "db_ok": False,
+        "db_configured": DATABASE_CONFIGURED,
         "threshold": meta["threshold"],
         "test_metrics": meta["test_metrics"],
         "model_name": meta["model_name"],
@@ -29,6 +37,8 @@ def load_bundle() -> dict:
         "platt": meta["platt"],
     }
     try:
+        if not DATABASE_CONFIGURED:
+            raise RuntimeError("no database configured")
         with get_session_factory(get_engine())() as s:
             run = s.scalars(select(ModelRun).where(ModelRun.is_active)).first()
         if run is not None and run.test_metrics is not None:

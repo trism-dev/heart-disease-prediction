@@ -16,6 +16,8 @@ N_ITER = 50
 N_BOOT = 1000
 
 DATABASE_URL = os.getenv("DATABASE_URL", "postgresql+psycopg://heart:heart@localhost:5433/heart")
+# True only when a database was explicitly configured (env var or .env); hosted demos have none
+DATABASE_CONFIGURED = bool(os.getenv("DATABASE_URL"))
 LOG_PREDICTIONS = os.getenv("LOG_PREDICTIONS", "false").lower() == "true"
 
 RAW_FILE = ROOT / "data" / "raw" / "processed.cleveland.data"

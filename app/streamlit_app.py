@@ -138,7 +138,7 @@ st.markdown(
     f"patients from one US clinic (Cleveland Clinic, 1980s data, {DS['male_rate']:.0%} male).</div>",
     unsafe_allow_html=True,
 )
-if not B["db_ok"]:
+if B["db_configured"] and not B["db_ok"]:
     st.info("Database unreachable: running from models/metadata.json, prediction logging is off.")
 
 tab_predict, tab_about = st.tabs(["Predict", "About the model"])
