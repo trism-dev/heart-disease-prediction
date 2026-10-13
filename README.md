@@ -16,9 +16,9 @@ one split, the winner is served in a Streamlit form, and PostgreSQL records ever
 
 Three things worth taking from this:
 
-1. **Logistic regression won.** Neither tree model beat it on CV recall by more than one standard deviation, so
-   the simpler model ships. XGBoost's perfect test recall came from a threshold of 0.03 that flags half the
-   healthy patients.
+1. **Logistic regression won.** Over 5x5 repeated CV, its precision at recall of at least 0.90 is 0.705 ± 0.023;
+   random forest (0.653) and XGBoost (0.655) are well below it, so the simpler model ships. A first, wider
+   XGBoost search produced an overconfident model (threshold 0.03); tightening the search space fixed that.
 2. **The 61-row test set is noisy.** One missed patient moves recall by 3.6 points. The bootstrap interval
    spans 0.88 to 1.00, so the three models are effectively tied on recall.
 3. **The recall target does not transfer.** On other sites recall drops to 0.70, and in cross-validation it is
@@ -38,12 +38,14 @@ Full tables, odds ratios, permutation importance and plots: [reports/model_compa
 ## Model card
 
 - **Intended use:** learning and portfolio demonstration. Not for clinical decisions.
-- **Model:** class-weighted logistic regression on one shared preprocessor (impute, scale, one-hot), threshold
-  0.31 chosen as the highest cut-off with out-of-fold train recall of at least 0.90.
+- **Model:** class-weighted logistic regression on one shared preprocessor (impute, scale, one-hot). The
+  threshold (0.31 raw, 28% after recalibration) is the highest cut-off with out-of-fold train recall of at least
+  0.90. Bootstrapping that choice gives a 90% band of 0.22 to 0.39, so it is not a sharp number. Moving the target
+  from 0.90 to 0.95 would raise train false alarms from 40 to 60 of 131 healthy patients.
 - **Data:** UCI Cleveland, 303 patients, 46% with disease. 6 missing values (`ca` 4, `thal` 2).
-- **Known limits:** one clinic and era; weaker recall for women; probabilities come from a class-weighted model
-  and are not calibrated, so the app shows a "risk score"; performance drops on other sites; a 61-patient test
-  set cannot rank models reliably.
+- **Known limits:** one clinic and era; weaker recall for women; the displayed score is sigmoid-recalibrated to
+  Cleveland's 46% prevalence only, so it is not a probability for other populations; performance drops on other
+  sites; a 61-patient test set cannot rank models reliably.
 
 ## Run it
 

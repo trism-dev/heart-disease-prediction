@@ -1,10 +1,10 @@
 {
   "selected": "logistic_regression",
-  "reason": "no tree model beat LR by more than one CV std; ties go to LR",
+  "reason": "no tree model beat LR's precision at recall >= 0.90 (0.705 \u00b1 0.023) by more than one std; ties go to LR",
   "run_ids": {
-    "logistic_regression": 13,
-    "random_forest": 14,
-    "xgboost": 15
+    "logistic_regression": 17,
+    "random_forest": 18,
+    "xgboost": 19
   },
   "data_hash": "295cbe13d6e7982a2bc8437fbad4e5017fe8b27801435d5aec9e5b0740131ec9"
 }

@@ -9,6 +9,7 @@ from sqlalchemy import select
 
 from src.config import FEATURES, LOG_PREDICTIONS, METADATA_PATH, PIPELINE_PATH, ROOT
 from src.db import ModelRun, Prediction, get_engine, get_session_factory
+from src.robustness import apply_platt
 
 HIGH = "Elevated risk — recommend clinical follow-up"
 LOW = "Lower risk"
@@ -25,6 +26,7 @@ def load_bundle() -> dict:
         "test_metrics": meta["test_metrics"],
         "model_name": meta["model_name"],
         "path": PIPELINE_PATH,
+        "platt": meta["platt"],
     }
     try:
         with get_session_factory(get_engine())() as s:
@@ -37,6 +39,7 @@ def load_bundle() -> dict:
                 model_name=run.model_name,
                 path=ROOT / run.artifact_path,
                 db_ok=True,
+                platt=run.cv_metrics["platt"],
             )
     except (
         Exception
@@ -84,9 +87,12 @@ def predict(bundle: dict, inputs: dict) -> dict:
     contrib = _contributions(bundle, X)
     top = sorted(contrib.items(), key=lambda kv: abs(kv[1]), reverse=True)[:3]
     thr = bundle["threshold"]
+    # decision uses the raw threshold; the displayed score is the monotone recalibrated value
     return {
-        "probability": p,
-        "threshold": thr,
+        "probability": float(apply_platt(p, bundle["platt"])),
+        "raw_probability": p,
+        "threshold": float(apply_platt(thr, bundle["platt"])),
+        "raw_threshold": thr,
         "elevated": p >= thr,
         "label": HIGH if p >= thr else LOW,
         "top": top,

@@ -1,9 +1,18 @@
 {
   "model_name": "logistic_regression",
-  "run_id": 13,
+  "run_id": 17,
   "threshold": 0.3114121141704047,
-  "selection_reason": "no tree model beat LR by more than one CV std; ties go to LR",
+  "platt": {
+    "a": 0.9258897912217751,
+    "b": -0.19937290779170874
+  },
+  "threshold_display": 0.28209560999033534,
+  "selection_reason": "no tree model beat LR's precision at recall >= 0.90 (0.705 \u00b1 0.023) by more than one std; ties go to LR",
   "cv_metrics": {
+    "platt": {
+      "a": 0.9258897912217751,
+      "b": -0.19937290779170874
+    },
     "search": {
       "recall": {
         "std": 0.05423812140051993,
@@ -12,6 +21,36 @@
       "precision": {
         "std": 0.07541303764199071,
         "mean": 0.860787473396169
+      }
+    },
+    "targets": {
+      "0.85": {
+        "precision": 0.753968253968254,
+        "threshold": 0.37327552941249076,
+        "specificity": 0.7633587786259542,
+        "false_alarms": 31
+      },
+      "0.90": {
+        "precision": 0.7142857142857143,
+        "threshold": 0.3114121141704047,
+        "specificity": 0.6946564885496184,
+        "false_alarms": 40
+      },
+      "0.95": {
+        "precision": 0.6385542168674698,
+        "threshold": 0.18274211249586114,
+        "specificity": 0.5419847328244275,
+        "false_alarms": 60
+      }
+    },
+    "repeated": {
+      "threshold": {
+        "std": 0.03709537876221822,
+        "mean": 0.2902916120425362
+      },
+      "precision_at_recall": {
+        "std": 0.022928254714137616,
+        "mean": 0.7048241777321671
       }
     },
     "oof_recall": 0.9009009009009009,
@@ -29,7 +68,12 @@
         "mean": 0.716602809706258
       }
     },
-    "oof_precision": 0.7142857142857143
+    "oof_precision": 0.7142857142857143,
+    "threshold_bootstrap": {
+      "p05": 0.2169169599314754,
+      "p50": 0.3114121141704047,
+      "p95": 0.38999380032201375
+    }
   },
   "test_metrics": {
     "threshold": 0.3114121141704047,
@@ -51,7 +95,10 @@
     "precision_ci": [
       0.5882352941176471,
       0.868421052631579
-    ]
+    ],
+    "brier_raw": 0.0887911556965365,
+    "brier_cal": 0.08462111627030033,
+    "threshold_cal": 0.28209560999033534
   },
   "input_ranges": {
     "age": [

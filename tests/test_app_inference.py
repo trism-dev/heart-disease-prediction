@@ -5,6 +5,7 @@ import pytest
 
 from src.config import FEATURES, PIPELINE_PATH
 from src.inference import HIGH, LOW, load_bundle, predict, to_frame
+from src.robustness import apply_platt
 
 PROFILES = [
     dict(
@@ -66,7 +67,9 @@ def bundle():
 def test_matches_pipeline(bundle, profile):
     ref = joblib.load(PIPELINE_PATH).predict_proba(pd.DataFrame([profile])[FEATURES])[0, 1]
     res = predict(bundle, profile)
-    assert res["probability"] == pytest.approx(ref)
+    assert res["raw_probability"] == pytest.approx(ref)
+    assert res["probability"] == pytest.approx(float(apply_platt(ref, bundle["platt"])))
+    assert (res["probability"] >= res["threshold"]) == (ref >= bundle["threshold"])
     assert res["label"] == (HIGH if ref >= bundle["threshold"] else LOW)
     assert len(res["top"]) == 3
 

@@ -50,12 +50,15 @@ SEARCH_SPACES = {
         "clf__min_samples_leaf": randint(1, 11),
         "clf__max_features": ["sqrt", 0.5],
     },
+    # Regularised: the first, wider space gave an overconfident model (threshold 0.03)
     "xgboost": {
-        "clf__n_estimators": randint(100, 601),
-        "clf__max_depth": randint(2, 7),
-        "clf__learning_rate": loguniform(0.01, 0.3),
+        "clf__n_estimators": randint(50, 301),
+        "clf__max_depth": randint(1, 4),
+        "clf__learning_rate": loguniform(0.01, 0.2),
         "clf__subsample": uniform(0.6, 0.4),
-        "clf__colsample_bytree": uniform(0.6, 0.4),
-        "clf__reg_lambda": loguniform(0.1, 10),
+        "clf__colsample_bytree": uniform(0.5, 0.5),
+        "clf__reg_lambda": loguniform(1, 30),
+        "clf__min_child_weight": randint(1, 11),
+        "clf__gamma": uniform(0, 2),
     },
 }

@@ -201,8 +201,9 @@ with tab_predict:
         )
         st.caption(
             "The threshold is set low on purpose: the model is tuned to miss as few sick patients "
-            "as possible, which means more false alarms. The score comes from a class-weighted "
-            "model, so treat it as a ranking signal, not a calibrated probability."
+            "as possible, which means more false alarms. The score is recalibrated to the "
+            "Cleveland data (46% of patients had disease), so it only reads as a chance of "
+            "disease for a similar population."
         )
 
         edge = [FRIENDLY[c] for c in ("age", "trestbps", "chol", "thalach", "oldpeak")

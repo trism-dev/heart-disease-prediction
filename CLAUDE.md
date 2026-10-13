@@ -83,7 +83,7 @@ notebooks/01_eda.ipynb exploration only; no logic that src/ depends on
 4. **Threshold:** from `cross_val_predict(..., method="predict_proba")` on train, take the highest threshold with recall ≥ `RECALL_TARGET`. Store it in `metadata.json`.
 5. **Imbalance:** `class_weight="balanced"` for LR and RF, and `scale_pos_weight=neg/pos` for XGBoost. No SMOTE; the classes are nearly balanced.
 6. **Seed everything** (`SEED` from config) and log library versions into `metadata.json`.
-7. **Logistic regression is the baseline to beat.** A tree model ships only if its CV recall beats LR by more than one CV std at comparable precision. Ties go to LR.
+7. **Logistic regression is the baseline to beat.** A tree model ships only if its precision at recall ≥ `RECALL_TARGET` (mean over 5×5 repeated CV, `src/robustness.py`) beats LR's by more than one LR std. Ties go to LR. (Comparing recall at the 0.5 cut-off was dropped: the model ships at a tuned threshold, so that number didn't describe what ships.) The displayed probability is Platt-recalibrated on train OOF predictions; this is monotone, so it never changes who is flagged.
 8. **Sanity alarm:** if test accuracy is above 0.92 or recall is 1.00, suspect leakage (duplicates, wrong file) and investigate before reporting.
 
 ## Evaluation output (required for all three models)

@@ -23,6 +23,14 @@ from src.config import (
 from src.data import data_hash, load_clean, split
 from src.db import ModelRun, get_engine, get_session_factory, init_db
 from src.models import MODEL_NAMES, SEARCH_SPACES, make_pipeline
+from src.robustness import (
+    choose_threshold,
+    fit_platt,
+    repeated_cv,
+    summarize,
+    target_table,
+    threshold_bootstrap,
+)
 
 
 def lib_versions() -> dict:
@@ -46,16 +54,6 @@ def _refit(cv_results) -> int:
     return int(np.argmax(score))
 
 
-def choose_threshold(y, proba, target: float = RECALL_TARGET) -> float:
-    """Highest threshold whose recall is >= target (positive if p >= t)."""
-    y = np.asarray(y)
-    best = 0.0
-    for t in np.unique(proba):
-        if recall_score(y, proba >= t) >= target:
-            best = max(best, float(t))
-    return best
-
-
 def _jsonable(v):
     if isinstance(v, (np.integer,)):
         return int(v)
@@ -64,27 +62,24 @@ def _jsonable(v):
     return v
 
 
-def summarize(vals) -> dict:
-    return {"mean": float(np.mean(vals)), "std": float(np.std(vals, ddof=1))}
-
-
 def select_model(runs: dict) -> tuple[str, str]:
-    """LR is the bar; a tree model ships only if CV recall beats LR by > 1 CV std at comparable precision."""
-    lr = runs["logistic_regression"]["search"]
-    winner, reason = (
-        "logistic_regression",
-        "no tree model beat LR by more than one CV std; ties go to LR",
+    """LR is the bar. A tree model ships only if its precision at recall >= target (mean over
+    5x5 repeated CV) beats LR's by more than one LR std. Ties go to LR."""
+    lr = runs["logistic_regression"]["repeated"]["precision_at_recall"]
+    winner = "logistic_regression"
+    reason = (
+        f"no tree model beat LR's precision at recall >= {RECALL_TARGET:.2f} "
+        f"({lr['mean']:.3f} ± {lr['std']:.3f}) by more than one std; ties go to LR"
     )
     best_gain = 0.0
     for name in ("random_forest", "xgboost"):
-        s = runs[name]["search"]
-        gain = s["recall"]["mean"] - lr["recall"]["mean"]
-        comparable = s["precision"]["mean"] >= lr["precision"]["mean"] - 0.05
-        if gain > lr["recall"]["std"] and comparable and gain > best_gain:
+        s = runs[name]["repeated"]["precision_at_recall"]
+        gain = s["mean"] - lr["mean"]
+        if gain > lr["std"] and gain > best_gain:
             winner, best_gain = name, gain
             reason = (
-                f"{name} CV recall {s['recall']['mean']:.3f} beats LR {lr['recall']['mean']:.3f} "
-                f"by more than one LR CV std ({lr['recall']['std']:.3f}) at comparable precision"
+                f"{name} precision at recall >= {RECALL_TARGET:.2f} is {s['mean']:.3f} vs LR "
+                f"{lr['mean']:.3f}, more than one LR std ({lr['std']:.3f}) better"
             )
     return winner, reason
 
@@ -124,7 +119,13 @@ def main() -> None:
             folds["recall"].append(recall_score(yv, pv))
             folds["precision"].append(precision_score(yv, pv, zero_division=0))
             folds["f2"].append(fbeta_score(yv, pv, beta=2))
+        print("  repeated CV, threshold stability, calibration ...")
+        rep = repeated_cv(best, X_train, y_train)
         cv_metrics = {
+            "repeated": rep,
+            "threshold_bootstrap": threshold_bootstrap(y_train, proba),
+            "targets": target_table(y_train, proba),
+            "platt": fit_platt(y_train, proba),
             "search": {
                 "recall": {
                     "mean": float(r["mean_test_recall"][i]),
@@ -144,6 +145,7 @@ def main() -> None:
         oof[name] = proba
         runs[name] = {
             "search": cv_metrics["search"],
+            "repeated": rep,
             "row": dict(
                 model_name=name,
                 threshold=thr,

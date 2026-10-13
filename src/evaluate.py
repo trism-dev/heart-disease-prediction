@@ -13,6 +13,7 @@ from sklearn.calibration import calibration_curve
 from sklearn.metrics import (
     accuracy_score,
     average_precision_score,
+    brier_score_loss,
     confusion_matrix,
     fbeta_score,
     precision_recall_curve,
@@ -37,6 +38,7 @@ from src.data import data_hash, load_clean, split
 from src.db import ModelRun, get_engine, get_session_factory
 from src.models import LABELS, MODEL_NAMES
 from src.report_extras import extras_markdown
+from src.robustness import apply_platt
 from src.train import lib_versions
 
 
@@ -141,15 +143,16 @@ def plot_recall_threshold(oof, y_train, probs, y_test, thresholds, shipped):
     plt.close(fig)
 
 
-def plot_calibration(y, proba, name):
-    frac, mean = calibration_curve(y, proba, n_bins=5, strategy="quantile")
-    fig, ax = plt.subplots(figsize=(4.5, 4.2))
+def plot_calibration(y, raw, cal, name):
+    fig, ax = plt.subplots(figsize=(4.8, 4.4))
     ax.plot([0, 1], [0, 1], "k:", label="perfect")
-    ax.plot(mean, frac, "o-", label=LABELS[name])
+    for p, label in ((raw, "raw (class-weighted)"), (cal, "after sigmoid recalibration")):
+        frac, mean = calibration_curve(y, p, n_bins=5, strategy="quantile")
+        ax.plot(mean, frac, "o-", label=label)
     ax.set(
         xlabel="Mean predicted probability",
         ylabel="Observed fraction with disease",
-        title="Calibration (test, 5 quantile bins)",
+        title=f"{LABELS[name]}: calibration (test, 5 quantile bins)",
     )
     ax.legend()
     fig.tight_layout()
@@ -175,21 +178,26 @@ def main() -> None:
     if data_hash(df) != sel["data_hash"]:
         raise RuntimeError("patients_raw changed since training; re-run src.train")
 
-    res, probs, thresholds = {}, {}, {}
+    res, probs, cal_probs, thresholds = {}, {}, {}, {}
     for name in MODEL_NAMES:
         pipe = joblib.load(MODELS_DIR / f"{name}.joblib")
         probs[name] = pipe.predict_proba(X_test)[:, 1]
         thresholds[name] = runs[name].threshold
+        platt = runs[name].cv_metrics["platt"]
+        cal_probs[name] = apply_platt(probs[name], platt)
         res[name] = {
             **metrics_at(y, probs[name], thresholds[name]),
             **bootstrap_ci(y, probs[name], thresholds[name]),
+            "brier_raw": float(brier_score_loss(y, probs[name])),
+            "brier_cal": float(brier_score_loss(y, cal_probs[name])),
+            "threshold_cal": float(apply_platt(thresholds[name], platt)),
         }
 
     FIGURES_DIR.mkdir(parents=True, exist_ok=True)
     plot_confusions(res)
     plot_roc_pr(y, probs)
     plot_recall_threshold(oof_blob["oof"], oof_blob["y_train"], probs, y, thresholds, shipped)
-    plot_calibration(y, probs[shipped], shipped)
+    plot_calibration(y, probs[shipped], cal_probs[shipped], shipped)
 
     # DB: write test metrics, switch the active run in one transaction
     with Session.begin() as s:
@@ -205,7 +213,9 @@ def main() -> None:
             .values(is_active=False)
         )
 
-    extra = extras_markdown(X_train, y_train, X_test, y, probs, thresholds, oof_blob, shipped)
+    extra = extras_markdown(
+        X_train, y_train, X_test, y, probs, cal_probs, thresholds, oof_blob, shipped
+    )
 
     # Packaging
     shutil.copyfile(MODELS_DIR / f"{shipped}.joblib", PIPELINE_PATH)
@@ -220,6 +230,8 @@ def main() -> None:
         "model_name": shipped,
         "run_id": runs[shipped].run_id,
         "threshold": thresholds[shipped],
+        "platt": runs[shipped].cv_metrics["platt"],
+        "threshold_display": res[shipped]["threshold_cal"],
         "selection_reason": sel["reason"],
         "cv_metrics": runs[shipped].cv_metrics,
         "test_metrics": res[shipped],
@@ -271,9 +283,30 @@ def write_report(res, runs, shipped, sel, n_test, n_pos, extra: str = "") -> Non
             f"| {LABELS[name]} | {s['recall']['mean']:.3f} ± {s['recall']['std']:.3f} | "
             f"{s['precision']['mean']:.3f} ± {s['precision']['std']:.3f} | "
             f"{t['recall']['mean']:.3f} ± {t['recall']['std']:.3f} | "
-            f"{t['precision']['mean']:.3f} ± {t['precision']['std']:.3f} | {c['oof_precision']:.3f} |"
+            f"{t['precision']['mean']:.3f} ± {t['precision']['std']:.3f} |"
         )
     m = res[shipped]
+    rep_rows = []
+    for n in MODEL_NAMES:
+        rc = runs[n].cv_metrics["repeated"]
+        par, th = rc["precision_at_recall"], rc["threshold"]
+        rep_rows.append(
+            f"| {LABELS[n]} | {par['mean']:.3f} ± {par['std']:.3f} | "
+            f"{th['mean']:.3f} ± {th['std']:.3f} |"
+        )
+    cvs = runs[shipped].cv_metrics
+    tb, thr = cvs["threshold_bootstrap"], res[shipped]["threshold"]
+    t90 = cvs["targets"]["0.90"]
+    n_neg_train = round(t90["false_alarms"] / (1 - t90["specificity"]))
+    tgt_rows = [
+        f"| {k} | {v['threshold']:.3f} | {v['precision']:.3f} | {v['specificity']:.3f} | "
+        f"{v['false_alarms']} |"
+        for k, v in cvs["targets"].items()
+    ]
+    brier_rows = [
+        f"| {LABELS[n]} | {res[n]['brier_raw']:.3f} | {res[n]['brier_cal']:.3f} |"
+        for n in MODEL_NAMES
+    ]
     perfect = "".join(
         f"Note: {LABELS[n]} reaches recall 1.00 on test at threshold {res[n]['threshold']:.3f} with "
         f"specificity {res[n]['specificity']:.3f}. That comes from flagging many healthy patients, "
@@ -293,27 +326,58 @@ Generated by `python -m src.evaluate`. Test set: {n_test} patients, {n_pos} with
 | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
 {chr(10).join(rows)}
 
-## Cross-validation on train (5-fold stratified)
+## Cross-validation on train
 
-`Search` columns are the tuned model at the default 0.5 cut-off (what the selection rule uses).
-`At threshold` columns apply the OOF-chosen threshold, so recall sits near 0.90 by construction;
-the discriminating number there is precision.
+5-fold stratified, same folds for every model. "Search" is the tuned model at the default 0.5
+cut-off. "At threshold" applies the OOF-chosen threshold, so recall sits near 0.90 by construction
+and precision is the number that separates the models.
 
-| Model | Search recall | Search precision | Recall at threshold | Precision at threshold | OOF precision |
-| --- | --- | --- | --- | --- | --- |
+| Model | Search recall | Search precision | Recall at threshold | Precision at threshold |
+| --- | --- | --- | --- | --- |
 {chr(10).join(cv)}
 
-## Selection
+## Selection (5x5 repeated CV, precision at recall >= 0.90)
 
-**Shipped: {LABELS[shipped]}.** {sel["reason"]}. Rule: a tree model ships only if its CV recall
-beats logistic regression by more than one CV standard deviation at comparable precision (within
-0.05); ties go to LR. The shipped model catches {m["tp"]} of {n_pos} sick test patients
-(recall {m["recall"]:.3f}, {m["fn"]} missed) with precision {m["precision"]:.3f} and
-{m["fp"]} false alarms.
+Each model's tuned configuration is re-run over 5 different 5-fold splits. In every repeat the
+threshold is the highest one with recall >= 0.90, and precision is read at that threshold.
 
-Thresholds are the highest cut-off with out-of-fold train recall ≥ 0.90; the test set was used once,
-only to report. Class weighting (`balanced`) inflates predicted probabilities, so the app's
-percentage is a risk score, not a calibrated prevalence estimate (see `figures/calibration.png`).
+| Model | Precision at recall >= 0.90 (mean ± std) | Threshold across repeats (mean ± std) |
+| --- | --- | --- |
+{chr(10).join(rep_rows)}
+
+**Shipped: {LABELS[shipped]}.** {sel["reason"]}. Rule: a tree model ships only if its precision at the
+recall target beats logistic regression's by more than one LR standard deviation; ties go to LR.
+The shipped model catches {m["tp"]} of {n_pos} sick test patients (recall {m["recall"]:.3f}, {m["fn"]}
+missed) with precision {m["precision"]:.3f} and {m["fp"]} false alarms.
+
+## Threshold stability and the recall target
+
+Threshold for the shipped model on train OOF predictions, over 500 bootstrap resamples: 5th
+percentile {tb["p05"]:.3f}, median {tb["p50"]:.3f}, 95th percentile {tb["p95"]:.3f} (chosen: {thr:.3f}).
+A threshold chosen on 242 rows is not a sharp number; read it as a band.
+
+What each recall target costs (shipped model, train OOF):
+
+| Recall target | Threshold | Precision | Specificity | False alarms (of {n_neg_train} healthy) |
+| --- | --- | --- | --- | --- |
+{chr(10).join(tgt_rows)}
+
+0.90 is kept as the target: the 61-row test set cannot tell 0.90 and 0.95 apart with any
+confidence, and the table above shows what the extra recall costs in false alarms.
+
+## Calibration
+
+Class weighting inflates raw probabilities. A sigmoid (Platt) recalibration is fitted on the train
+OOF predictions and applied to the test set. It is monotone, so recall and precision are unchanged
+at the mapped threshold; only the displayed number changes.
+
+| Model | Brier raw | Brier recalibrated |
+| --- | --- | --- |
+{chr(10).join(brier_rows)}
+
+The app shows the recalibrated value for the shipped model. It is calibrated to Cleveland's 46%
+prevalence only, so on a population with a different prevalence it would be off (see
+`external_validation.md`). Curves: `figures/calibration.png`.
 
 Sanity check: test accuracy {m["accuracy"]:.3f}, recall {m["recall"]:.3f}
 ({"ALARM: investigate leakage" if m["accuracy"] > 0.92 or m["recall"] == 1.0 else "inside the plausible range, no leakage alarm"}).

@@ -3,10 +3,10 @@
 import joblib
 import numpy as np
 from sklearn.inspection import permutation_importance
-from sklearn.metrics import brier_score_loss, precision_score, recall_score
+from sklearn.metrics import precision_score, recall_score
 
 from src.config import MODELS_DIR, SEED
-from src.models import LABELS, MODEL_NAMES
+from src.models import LABELS
 
 
 def _row(label, y, pred) -> str:
@@ -21,18 +21,11 @@ def _table(header: str, rows: list[str]) -> str:
     return "\n".join([header, "|" + " --- |" * cols, *rows])
 
 
-def extras_markdown(X_train, y_train, X_test, y_test, probs, thresholds, oof_blob, shipped) -> str:
+def extras_markdown(
+    X_train, y_train, X_test, y_test, probs, cal_probs, thresholds, oof_blob, shipped
+) -> str:
     """Markdown sections appended to reports/model_comparison.md."""
     out = []
-
-    rows = [f"| {LABELS[n]} | {brier_score_loss(y_test, probs[n]):.3f} |" for n in MODEL_NAMES]
-    out.append(
-        "## Probability quality (Brier score, test)\n\n"
-        + _table("| Model | Brier |", rows)
-        + "\n\nLower is better; 0.25 is a coin flip. Class weighting pushes probabilities up, so "
-        "these are expected to be mediocre. The app shows a risk score, not a calibrated "
-        "probability.\n"
-    )
 
     lr = joblib.load(MODELS_DIR / "logistic_regression.joblib")
     names = lr[:-1].get_feature_names_out()
