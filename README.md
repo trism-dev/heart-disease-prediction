@@ -4,6 +4,8 @@ A binary classifier on the UCI Heart Disease (Cleveland) data, tuned for **recal
 patient costs far more than a false alarm. Logistic regression, random forest and XGBoost are compared on
 one split, the winner is served in a Streamlit form, and PostgreSQL records every training run.
 
+**Live demo: https://heart-disease-prediction-project-01.streamlit.app/**
+
 > **Educational demo, not a diagnostic tool.** 303 patients, one clinic, 1980s data, 68% male.
 
 ## Results at a glance
