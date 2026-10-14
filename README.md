@@ -4,7 +4,9 @@ A binary classifier on the UCI Heart Disease (Cleveland) data, tuned for **recal
 patient costs far more than a false alarm. Logistic regression, random forest and XGBoost are compared on
 one split, the winner is served in a Streamlit form, and PostgreSQL records every training run.
 
-**Live demo: https://heart-disease-prediction-project-01.streamlit.app/**
+**Live Vercel app: https://heart-disease-prediction-alpha.vercel.app/**
+
+Original Streamlit demo: https://heart-disease-prediction-project-01.streamlit.app/
 
 > **Educational demo, not a diagnostic tool.** 303 patients, one clinic, 1980s data, 68% male.
 
@@ -87,3 +89,5 @@ Local preview from repository root: install Flask from vercel_app/requirements.t
 The two deployment model artifacts are copies of models/pipeline.joblib and models/metadata.json. After an intentionally evaluated model change, run node vercel_app/scripts/sync-models.mjs and commit the copied artifacts. CI checks byte-for-byte equality and prediction parity with the original inference implementation.
 
 The demo remains educational and is not a diagnostic tool. Use example profiles; the fitted score is calibrated only to the Cleveland population.
+
+Production Vercel project: heart-disease-prediction, connected to this GitHub repository with vercel_app as Root Directory. Pushes to main deploy automatically. Production domain: https://heart-disease-prediction-alpha.vercel.app/. 37 tests are collected; 34 non-database tests pass, with 3 database tests requiring local PostgreSQL.
