@@ -91,3 +91,5 @@ The two deployment model artifacts are copies of models/pipeline.joblib and mode
 The demo remains educational and is not a diagnostic tool. Use example profiles; the fitted score is calibrated only to the Cleveland population.
 
 Production Vercel project: heart-disease-prediction, connected to this GitHub repository with vercel_app as Root Directory. Pushes to main deploy automatically. Production domain: https://heart-disease-prediction-alpha.vercel.app/. 37 tests are collected; 34 non-database tests pass, with 3 database tests requiring local PostgreSQL.
+
+Vercel static asset snapshot: vercel_app/public is committed because the Python deployment collector enumerates static files before the React build hook. When changing the frontend, run npm run build in vercel_app and commit the refreshed public files with the UI source. CI rebuilds and rejects any difference from the committed assets. Node modules and local Vercel credentials stay ignored.

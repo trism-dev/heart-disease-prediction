@@ -19,3 +19,7 @@ jobs:
           cache-dependency-path: vercel_app/package-lock.json
       - run: npm ci && npm run check:models && npm run build
         working-directory: vercel_app
+      # The Python deployment collector needs static assets present at checkout.
+      # Fail if the committed snapshot differs from a fresh frontend build.
+      - run: git diff --exit-code -- public
+        working-directory: vercel_app
