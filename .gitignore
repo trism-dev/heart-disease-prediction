@@ -8,3 +8,6 @@ __pycache__/
 vercel_app/node_modules/
 vercel_app/public/
 vercel_app/.vercel/
+
+.vercel
+.env*
