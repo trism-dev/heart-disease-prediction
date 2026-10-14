@@ -1,0 +1,13 @@
+{
+  "name": "heart-disease-web-demo",
+  "private": true,
+  "version": "1.0.0",
+  "type": "module",
+  "scripts": {
+    "dev": "vite --host 127.0.0.1",
+    "build": "vite build",
+    "check:models": "node scripts/sync-models.mjs --check"
+  },
+  "dependencies": { "react": "19.3.0", "react-dom": "19.3.0" },
+  "devDependencies": { "vite": "^7.1.0" }
+}

@@ -12,3 +12,10 @@ jobs:
       - run: pip install -r requirements-dev.txt
       - run: ruff check . && ruff format --check .
       - run: pytest -q -m "not db"
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+          cache-dependency-path: vercel_app/package-lock.json
+      - run: npm ci && npm run check:models && npm run build
+        working-directory: vercel_app

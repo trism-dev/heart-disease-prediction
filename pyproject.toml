@@ -4,7 +4,7 @@ pythonpath = ["."]
 
 [tool.ruff]
 line-length = 100
-extend-exclude = ["*.ipynb", ".venv"]
+extend-exclude = ["*.ipynb", ".venv", "node_modules", "vercel_app/public"]
 
 [tool.ruff.lint]
 select = ["E", "F", "I"]
